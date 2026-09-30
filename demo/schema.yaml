@@ -1,6 +1,4 @@
-# The configuration contract shared by every service in the demo platform.
-# It is the single source of truth for names, types, defaults and secrecy,
-# and it is enforced identically for Python, Node.js (or Go) programs.
+
 version: 1
 fields:
   - env: DATABASE_URL

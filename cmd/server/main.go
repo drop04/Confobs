@@ -1,28 +1,3 @@
-// Command server is a small task-list HTTP API that exists purely to
-// showcase confobs in a realistic setting: startup config validation with
-// typo detection, a stale .env check, and live config reload on SIGHUP with
-// drift logged to stdout.
-//
-// Run it:
-//
-//	cp .env.example .env
-//	go run ./cmd/server
-//
-// Then, in another terminal:
-//
-//	curl localhost:8080/health
-//	curl -X POST "localhost:8080/tasks?title=write+report"
-//	curl localhost:8080/tasks
-//
-// To see live config reload + drift logging in action:
-//
-//	# edit .env, e.g. change LOG_LEVEL=info to LOG_LEVEL=debug
-//	kill -HUP $(pgrep -f cmd/server)
-//	# the running server logs exactly what changed, with no restart
-//
-// To see typo detection:
-//
-//	# in .env, rename DATABASE_URL to DATABSE_URL, then re-run
 package main
 
 import (
@@ -41,8 +16,6 @@ import (
 	"confobs"
 )
 
-// Config is the full set of settings this service needs. confobs owns
-// loading, validating, and diffing every field tagged with `env`.
 type Config struct {
 	DatabaseURL    string        `env:"DATABASE_URL,required" sensitive:"true"`
 	APIKey         string        `env:"API_KEY,required" sensitive:"true"`
@@ -57,9 +30,6 @@ const (
 	snapshotPath = "./config-snapshot.json"
 )
 
-// Server holds the live, swappable config plus a trivial in-memory task
-// list, protected by a mutex so SIGHUP-triggered reloads are safe to run
-// concurrently with request handling.
 type Server struct {
 	mu    sync.RWMutex
 	cfg   Config
@@ -79,11 +49,6 @@ func (s *Server) setConfig(cfg Config) {
 }
 
 func main() {
-	// Load .env into the process environment first. This is a deliberately
-	// tiny, demo-local helper — confobs itself is env-source agnostic and
-	// just reads os.Environ(), so "reloadable from a file" is a pattern the
-	// application builds on top, not something the library needs to know
-	// about.
 	if err := loadEnvFile(envFilePath); err != nil && !os.IsNotExist(err) {
 		log.Fatalf("reading %s: %v", envFilePath, err)
 	}
@@ -107,7 +72,6 @@ func main() {
 		}
 	}
 
-	// Establish (or load) the drift baseline before serving traffic.
 	drift, _, err := confobs.Reload(&cfg, snapshotPath)
 	if err != nil {
 		log.Fatalf("establishing config snapshot: %v", err)
@@ -138,12 +102,6 @@ func main() {
 	log.Fatal(httpServer.ListenAndServe())
 }
 
-// watchForReload listens for SIGHUP and, on each signal, re-reads .env,
-// reloads the config, and logs whatever confobs reports as changed. Note
-// that Port isn't actually re-bound here (that would need restarting the
-// listener) — this mirrors real services, where some settings hot-reload
-// and others require a restart; confobs reports the drift either way so
-// that distinction is visible in the log, not silently lost.
 func watchForReload(srv *Server) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP)
@@ -192,9 +150,6 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	taskCount := len(s.tasks)
 	s.mu.RUnlock()
 
-	// Only non-sensitive fields are ever exposed here — DatabaseURL and
-	// APIKey are deliberately left out, not just "redacted", since a health
-	// endpoint should never carry secrets in the first place.
 	writeJSON(w, map[string]any{
 		"status":          "ok",
 		"log_level":       cfg.LogLevel,
@@ -234,11 +189,6 @@ func writeJSON(w http.ResponseWriter, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-// loadEnvFile parses a simple KEY=VALUE .env file and applies each entry to
-// the process environment via os.Setenv, so a subsequent confobs.Load sees
-// it. This is what makes SIGHUP-triggered reload meaningful in this demo —
-// without it, a running process's environment is fixed at start and editing
-// .env would have no effect until a full restart.
 func loadEnvFile(path string) error {
 	f, err := os.Open(path)
 	if err != nil {

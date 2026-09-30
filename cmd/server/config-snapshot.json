@@ -1,0 +1,8 @@
+{
+  "API_KEY": "sha256:0fff617c5e69aa18",
+  "DATABASE_URL": "sha256:5f2e12021647098a",
+  "LOG_LEVEL": "info",
+  "MAX_CONNS": "20",
+  "PORT": "8080",
+  "REQUEST_TIMEOUT": "10s"
+}
