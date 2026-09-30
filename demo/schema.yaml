@@ -1,0 +1,38 @@
+# The configuration contract shared by every service in the demo platform.
+# It is the single source of truth for names, types, defaults and secrecy,
+# and it is enforced identically for Python, Node.js (or Go) programs.
+version: 1
+fields:
+  - env: DATABASE_URL
+    required: true
+    sensitive: true
+    description: Connection string for the service's database
+
+  - env: API_KEY
+    required: true
+    sensitive: true
+    description: Key that clients must send in the X-API-Key header to write data
+
+  - env: PORT
+    type: int
+    default: "8080"
+    description: TCP port the HTTP server listens on
+
+  - env: LOG_LEVEL
+    default: info
+    description: "info or debug"
+
+  - env: REQUEST_TIMEOUT_MS
+    type: int
+    default: "10000"
+    description: Per-connection idle timeout in milliseconds
+
+  - env: MAX_CONNS
+    type: int
+    default: "20"
+    description: Maximum simultaneous connections
+
+  - env: FEATURE_BETA
+    type: bool
+    default: "false"
+    description: Turns on the beta behaviour of the service
